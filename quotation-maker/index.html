@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a6c5a">
+  <title>Siddhi Energy — Quotation Maker</title>
+  <style>
+    :root {
+      --green: #0a6c5a;
+      --green-dark: #075043;
+      --green-soft: #e9f5f1;
+      --gold: #d99d2b;
+      --ink: #18302b;
+      --muted: #5e716d;
+      --line: #bdd8d0;
+      --paper: #ffffff;
+      --canvas: #eff5f3;
+    }
+
+    * { box-sizing: border-box; }
+    html { background: var(--canvas); }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--canvas);
+    }
+    button, input, textarea, select { font: inherit; }
+
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      min-height: 70px;
+      padding: 12px clamp(18px, 4vw, 52px);
+      color: white;
+      background: linear-gradient(110deg, var(--green-dark), var(--green));
+      box-shadow: 0 3px 15px rgb(5 53 45 / 18%);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      color: var(--green-dark);
+      font-size: 22px;
+      font-weight: 900;
+      background: #fff;
+      border-radius: 12px;
+    }
+    .brand h1 { margin: 0; font-size: clamp(17px, 2.2vw, 22px); letter-spacing: -.02em; }
+    .brand p { margin: 2px 0 0; color: #d5eee8; font-size: 12px; }
+    .header-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; }
+    .button {
+      min-height: 38px;
+      padding: 8px 13px;
+      color: var(--green-dark);
+      font-weight: 700;
+      font-size: 13px;
+      background: #fff;
+      border: 0;
+      border-radius: 9px;
+      cursor: pointer;
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .button:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgb(0 0 0 / 16%); }
+    .button.secondary { color: white; background: transparent; border: 1px solid rgb(255 255 255 / 60%); }
+    .button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 3px solid #f4c564; outline-offset: 2px; }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(285px, 350px) minmax(0, 1fr);
+      align-items: start;
+      max-width: 1660px;
+      margin: 0 auto;
+    }
+    .editor {
+      position: sticky;
+      top: 70px;
+      max-height: calc(100vh - 70px);
+      padding: 23px;
+      overflow: auto;
+      background: #fff;
+      border-right: 1px solid #d9e6e2;
+    }
+    .editor h2 { margin: 0 0 4px; font-size: 18px; }
+    .editor .intro { margin: 0 0 19px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .form-section { padding: 17px 0; border-top: 1px solid #e1ece9; }
+    .form-section:first-of-type { border-top: 0; }
+    .form-section h3 { margin: 0 0 12px; color: var(--green-dark); font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
+    .field { display: grid; gap: 5px; margin: 0 0 11px; }
+    .field label { color: #3d5650; font-size: 12px; font-weight: 700; }
+    .field input, .field textarea, .field select {
+      width: 100%;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: #fbfdfc;
+      border: 1px solid #cbded8;
+      border-radius: 7px;
+    }
+    .field textarea { min-height: 64px; resize: vertical; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .upload-note { margin: 6px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+    #status { min-height: 16px; margin: 9px 0 0; color: #d9f5ee; font-size: 12px; text-align: right; }
+    #status.error { color: #ffe4a9; }
+
+    .preview-zone { min-width: 0; padding: 32px; overflow: auto; }
+    .preview-caption { max-width: 210mm; margin: 0 auto 12px; color: #58716a; font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+    .quotation-book { display: grid; gap: 28px; justify-content: center; }
+    .quote-page {
+      position: relative;
+      width: 210mm;
+      height: 297mm;
+      padding: 13mm 14mm 11mm;
+      overflow: hidden;
+      background: var(--paper);
+      box-shadow: 0 10px 28px rgb(34 70 61 / 16%);
+    }
+    .quote-page::before {
+      position: absolute;
+      inset: 6mm;
+      pointer-events: none;
+      content: "";
+      border: 1.2px solid var(--green);
+    }
+    .page-content { position: relative; z-index: 1; height: 100%; }
+    .page-1 .page-content, .page-2 .page-content { display: flex; flex-direction: column; }
+
+    .quote-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding-bottom: 7mm; border-bottom: 2px solid var(--green); }
+    .company-name { margin: 0; color: var(--green-dark); font-size: 28px; letter-spacing: -.045em; }
+    .company-tag { display: inline-block; margin-top: 3px; color: var(--gold); font-size: 10px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+    .company-contact { margin: 8px 0 0; color: #425b55; font-size: 10px; line-height: 1.5; }
+    .logo-box {
+      display: grid;
+      flex: 0 0 39mm;
+      place-items: center;
+      width: 39mm;
+      height: 25mm;
+      overflow: hidden;
+      color: #7a8e88;
+      font-size: 9px;
+      font-weight: 700;
+      text-align: center;
+      background: transparent;
+    }
+    .logo-box img { display: none; width: 100%; height: 100%; object-fit: contain; }
+    .logo-box.has-image img { display: block; }
+    .logo-box.has-image span { display: none; }
+
+    .document-strip { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 7mm 0 6mm; }
+    .document-strip h2 { margin: 0; color: var(--green-dark); font-size: 19px; letter-spacing: .03em; text-transform: uppercase; }
+    .meta { display: flex; gap: 5mm; color: #4f6861; font-size: 9px; text-align: right; }
+    .meta b { color: var(--ink); }
+    .section-kicker { margin: 0 0 3mm; color: var(--green-dark); font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    .rule { height: 3px; width: 28mm; margin: 0 0 4mm; background: var(--gold); }
+
+    table { border-collapse: collapse; }
+    .customer-table { width: 100%; table-layout: fixed; border: 1px solid var(--line); }
+    .customer-table th, .customer-table td { padding: 3.4mm 4mm; vertical-align: top; border-bottom: 1px solid var(--line); }
+    .customer-table tr:last-child th, .customer-table tr:last-child td { border-bottom: 0; }
+    .customer-table th { width: 36%; color: var(--green-dark); font-size: 10px; font-weight: 800; text-align: left; background: var(--green-soft); }
+    .customer-table td { min-height: 11mm; color: #263d37; font-size: 10.5px; line-height: 1.35; white-space: pre-line; }
+    .placeholder { color: #91a39e; font-style: italic; }
+    .page-1-footer { display: flex; align-items: flex-end; gap: 7mm; margin-top: auto; padding-top: 7mm; border-top: 1px solid var(--line); }
+    .page-bottom-note { flex: 1; margin: 0; color: #577067; font-size: 9px; line-height: 1.45; }
+    .cost-summary { flex: 0 0 51mm; padding: 3.5mm 4mm; color: #fff; text-align: right; background: var(--green-dark); border-right: 4px solid var(--gold); border-radius: 3px; }
+    .cost-summary span { display: block; color: #dcefe9; font-size: 8.5px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+    .cost-summary strong { display: block; margin-top: 1mm; color: #fff; font-size: 15px; line-height: 1.1; }
+    .cost-summary strong.placeholder { color: #dcefe9; font-size: 11px; font-style: italic; }
+    .page-number { position: absolute; right: 1mm; bottom: 1mm; color: #6c827c; font-size: 8px; }
+
+    .bank-title { margin: 0; color: var(--green-dark); font-size: 20px; letter-spacing: -.025em; }
+    .bank-subtitle { margin: 2mm 0 5mm; color: var(--muted); font-size: 10px; }
+    .bank-grid { display: grid; grid-template-columns: 37mm 1fr; border: 1px solid var(--line); }
+    .bank-grid > div { min-height: 12.4mm; padding: 3.4mm 4mm; border-bottom: 1px solid var(--line); }
+    .bank-grid > div:nth-last-child(-n+2) { border-bottom: 0; }
+    .bank-grid .label { color: var(--green-dark); font-size: 10px; font-weight: 800; background: var(--green-soft); }
+    .bank-grid .value { color: #273f38; font-size: 10px; line-height: 1.4; }
+    .bank-options { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+    .bank-options.single-bank { grid-template-columns: 1fr; }
+    .bank-card[hidden] { display: none; }
+    .bank-card { overflow: hidden; border: 1px solid var(--line); border-radius: 3px; }
+    .bank-card h4 { margin: 0; padding: 3mm 3.5mm; color: #fff; font-size: 10px; letter-spacing: .01em; background: var(--green-dark); }
+    .bank-card dl { display: grid; grid-template-columns: 27mm 1fr; margin: 0; }
+    .bank-card dt, .bank-card dd { min-height: 8.6mm; margin: 0; padding: 2.3mm 2.5mm; border-bottom: 1px solid var(--line); }
+    .bank-card dt { color: var(--green-dark); font-size: 8px; font-weight: 800; background: var(--green-soft); }
+    .bank-card dd { color: #273f38; font-size: 8.2px; line-height: 1.3; }
+    .bank-card dl > :nth-last-child(-n+2) { border-bottom: 0; }
+    .terms { margin-top: 5mm; }
+    .terms h3 { margin: 0 0 3mm; color: var(--green-dark); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+    .terms ul { display: grid; gap: 2.1mm; margin: 0; padding: 0 0 0 4.5mm; color: #304841; font-size: 9.3px; line-height: 1.42; }
+    .terms li::marker { color: var(--gold); }
+    .thanks { margin: 5mm 0 0; color: var(--green-dark); font-size: 11px; font-style: italic; font-weight: 700; text-align: center; }
+    .authorization { display: grid; grid-template-columns: 1fr 1fr; gap: 7mm; margin-top: auto; padding-top: 7mm; }
+    .seal-box, .signature-box { min-height: 29mm; padding: 3mm; background: transparent; border: 0; }
+    .seal-box { display: grid; place-items: center; overflow: hidden; }
+    .empty-upload { color: #7b928b; font-size: 9px; font-weight: 700; text-align: center; }
+    .signature-box { display: flex; align-items: flex-end; justify-content: center; position: relative; overflow: hidden; }
+    .signature-line { width: 90%; padding-bottom: 2.5mm; color: var(--green-dark); font-size: 9px; font-weight: 800; text-align: center; border-top: 1px solid #5b8176; }
+    .auth-label { position: absolute; top: 3mm; left: 0; width: 100%; color: #527267; font-size: 8px; font-weight: 800; text-align: center; }
+
+    @media (max-width: 1060px) {
+      .workspace { grid-template-columns: 1fr; }
+      .editor { position: static; max-height: none; border-right: 0; border-bottom: 1px solid #d9e6e2; }
+      .editor form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; }
+      .editor .form-section { break-inside: avoid; }
+      .preview-zone { padding: 24px 14px; }
+    }
+    @media (max-width: 690px) {
+      .app-header { align-items: flex-start; }
+      .header-actions { gap: 6px; }
+      .button { padding: 8px 10px; }
+      .editor form { display: block; }
+      .preview-zone { padding: 18px 8px; }
+      .quote-page { transform: scale(.46); transform-origin: top center; margin-bottom: calc(-297mm * .54); }
+      .quotation-book { gap: 8px; }
+      .preview-caption { text-align: center; }
+    }
+    /* Applied only while capturing the PDF. It prevents small-screen preview scaling
+       from affecting the exported A4 pages. */
+    body.pdf-export .quotation-book { display: block; }
+    body.pdf-export .quote-page {
+      transform: none !important;
+      margin: 0 !important;
+      box-shadow: none !important;
+    }
+    @media print {
+      @page { size: A4 portrait; margin: 0; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      html, body { width: 210mm; background: #fff; }
+      .app-header, .editor, .preview-caption { display: none !important; }
+      .workspace, .preview-zone, .quotation-book { display: block; margin: 0; padding: 0; overflow: visible; }
+      .quote-page { width: 210mm; height: 297mm; margin: 0; box-shadow: none; break-after: page; page-break-after: always; }
+      .quote-page:last-child { break-after: auto; page-break-after: auto; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-mark">S</div>
+      <div>
+        <h1>Siddhi Energy Quotation Maker</h1>
+        <p>Two-page solar installation quotation</p>
+      </div>
+    </div>
+    <div>
+      <div class="header-actions">
+        <button class="button secondary" id="resetButton" type="button">Clear customer details</button>
+        <button class="button" id="downloadButton" type="button">Download PDF</button>
+        <button class="button" id="printButton" type="button">Print quotation</button>
+      </div>
+      <p id="status" aria-live="polite"></p>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <aside class="editor" aria-label="Quotation details form">
+      <h2>Quotation details</h2>
+      <p class="intro">Fill in the customer information. The two-page quotation updates automatically.</p>
+      <form id="quotationForm">
+        <section class="form-section">
+          <h3>Reference</h3>
+          <div class="two-col">
+            <div class="field"><label for="quoteNo">Quotation No.</label><input id="quoteNo" name="quoteNo" placeholder="SE-2026-001"></div>
+            <div class="field"><label for="quoteDate">Date</label><input id="quoteDate" name="quoteDate" type="date"></div>
+          </div>
+        </section>
+        <section class="form-section">
+          <h3>Payment bank</h3>
+          <div class="field">
+            <label for="bankOption">Bank account to show on this quotation</label>
+            <select id="bankOption" name="bankOption">
+              <option value="maharashtra">Bank of Maharashtra</option>
+              <option value="sbi">State Bank of India (SBI)</option>
+            </select>
+          </div>
+        </section>
+        <section class="form-section">
+          <h3>Customer details</h3>
+          <div class="field"><label for="customerName">Customer name</label><input id="customerName" name="customerName" placeholder="Enter customer name"></div>
+          <div class="field"><label for="customerMobile">Mobile number</label><input id="customerMobile" name="customerMobile" inputmode="tel" placeholder="Enter mobile number"></div>
+          <div class="field"><label for="customerAddress">Address</label><textarea id="customerAddress" name="customerAddress" placeholder="Enter complete address"></textarea></div>
+        </section>
+        <section class="form-section">
+          <h3>Solar system</h3>
+          <div class="field"><label for="plantKw">Total kW plant</label><input id="plantKw" name="plantKw" placeholder="e.g. 3 kW"></div>
+          <div class="field"><label for="projectCost">Total project cost (₹)</label><input id="projectCost" name="projectCost" type="number" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 250000"></div>
+          <div class="field"><label for="panelType">Type of solar panel</label><input id="panelType" name="panelType" placeholder="e.g. Mono PERC panel"></div>
+          <div class="field"><label for="inverterType">Type of solar inverter</label><input id="inverterType" name="inverterType" placeholder="e.g. On-grid inverter"></div>
+        </section>
+        <section class="form-section">
+          <h3>Structure</h3>
+          <div class="field"><label for="structureType">Type of structure</label><select id="structureType" name="structureType"><option value="">Select structure</option><option>Box Pipe</option><option>C-Channel</option></select></div>
+          <div class="field"><label for="pipeSize">Size of pipe for structure</label><input id="pipeSize" name="pipeSize" placeholder="e.g. 2 in × 2 in"></div>
+          <div class="two-col">
+            <div class="field"><label for="frontHeight">Front height</label><input id="frontHeight" name="frontHeight" placeholder="e.g. 5 ft"></div>
+            <div class="field"><label for="endHeight">End height</label><input id="endHeight" name="endHeight" placeholder="e.g. 3 ft"></div>
+          </div>
+        </section>
+        <section class="form-section">
+          <h3>Branding & approval</h3>
+          <div class="field"><label for="logoUpload">Company logo</label><input id="logoUpload" accept="image/*" type="file"><p class="upload-note">Displayed at the top-right of both pages.</p></div>
+          <p class="upload-note">The completed quotation includes clear blank space for a physical company stamp and authorised signature.</p>
+        </section>
+      </form>
+    </aside>
+
+    <section class="preview-zone">
+      <p class="preview-caption">Live preview — prints as exactly two A4 pages</p>
+      <div class="quotation-book" id="printableQuotation">
+        <article class="quote-page page-1">
+          <div class="page-content">
+            <header class="quote-header">
+              <div>
+                <h1 class="company-name">Siddhi Energy</h1>
+                <span class="company-tag">Solar energy solutions</span>
+                <p class="company-contact">Mob: 7249675642 &nbsp;|&nbsp; siddhienergy1@gmail.com<br>Sarkarnagar, Near Radhika Sabha Gruh, In front of Hanuman Mandir,<br>Chandrapur – 442401</p>
+              </div>
+              <div class="logo-box" data-logo><span>YOUR COMPANY<br>LOGO</span><img alt="Siddhi Energy logo"></div>
+            </header>
+            <div class="document-strip">
+              <h2>Solar Installation Quotation</h2>
+              <div class="meta"><span>Quotation No.<br><b id="viewQuoteNo" class="placeholder">Not assigned</b></span><span>Date<br><b id="viewQuoteDate" class="placeholder">Not selected</b></span></div>
+            </div>
+            <section>
+              <p class="section-kicker">Customer & system details</p>
+              <div class="rule"></div>
+              <table class="customer-table" aria-label="Customer and system details">
+                <tbody>
+                  <tr><th>Customer Name</th><td data-output="customerName"></td></tr>
+                  <tr><th>Mobile No.</th><td data-output="customerMobile"></td></tr>
+                  <tr><th>Address</th><td data-output="customerAddress"></td></tr>
+                  <tr><th>Total kW Plant</th><td data-output="plantKw"></td></tr>
+                  <tr><th>Type of Solar Panel</th><td data-output="panelType"></td></tr>
+                  <tr><th>Type of Solar Inverter</th><td data-output="inverterType"></td></tr>
+                  <tr><th>Type of Structure</th><td data-output="structureType"></td></tr>
+                  <tr><th>Size of Pipe for Structure</th><td data-output="pipeSize"></td></tr>
+                  <tr><th>Structure Front Height</th><td data-output="frontHeight"></td></tr>
+                  <tr><th>Structure End Height</th><td data-output="endHeight"></td></tr>
+                </tbody>
+              </table>
+            </section>
+            <div class="page-1-footer">
+              <p class="page-bottom-note">This quotation is prepared specifically for the customer and the solar-system details shown above. Please verify the details before confirming the order.</p>
+              <div class="cost-summary"><span>Total Project Cost</span><strong id="viewProjectCost" class="placeholder">To be confirmed</strong></div>
+            </div>
+            <span class="page-number">Page 1 of 2</span>
+          </div>
+        </article>
+
+        <article class="quote-page page-2">
+          <div class="page-content">
+            <header class="quote-header">
+              <div>
+                <h1 class="company-name">Siddhi Energy</h1>
+                <span class="company-tag">Solar energy solutions</span>
+                <p class="company-contact">Mob: 7249675642 &nbsp;|&nbsp; siddhienergy1@gmail.com<br>Sarkarnagar, Near Radhika Sabha Gruh, In front of Hanuman Mandir,<br>Chandrapur – 442401</p>
+              </div>
+              <div class="logo-box" data-logo><span>YOUR COMPANY<br>LOGO</span><img alt="Siddhi Energy logo"></div>
+            </header>
+            <section style="margin-top: 7mm">
+              <h2 class="bank-title">Bank Details of Siddhi Energy</h2>
+              <p class="bank-subtitle">Please use the selected authorised bank account below for quotation payments.</p>
+              <div class="rule"></div>
+              <div class="bank-options single-bank" aria-label="Selected Siddhi Energy authorised bank account">
+                <section class="bank-card" id="bankMaharashtra">
+                  <h4>Bank of Maharashtra</h4>
+                  <dl>
+                    <dt>Account Name</dt><dd>SIDDHI ENERGY</dd>
+                    <dt>Account No.</dt><dd>60561002717</dd>
+                    <dt>IFSC Code</dt><dd>MAHB0000798</dd>
+                    <dt>Address</dt><dd>Bengali Camp, Near Chandrapur Public School, Chandrapur, Maharashtra – 442401</dd>
+                    <dt>GST IN</dt><dd>27CHVPS0880A1Z0</dd>
+                  </dl>
+                </section>
+                <section class="bank-card" id="bankSbi" hidden>
+                  <h4>State Bank of India (SBI)</h4>
+                  <dl>
+                    <dt>Account Name</dt><dd>SIDDHI ENERGY</dd>
+                    <dt>Account No.</dt><dd>00000044463908778</dd>
+                    <dt>IFSC Code</dt><dd>SBIN0001941</dd>
+                    <dt>Branch</dt><dd>Shastri Nagar</dd>
+                    <dt>Address</dt><dd>Near Hanuman Mandir, Prabhat Singh, Mul Road Hanuman Temple, Sanjay Nagar, Chandrapur, Maharashtra – 442401, India</dd>
+                  </dl>
+                </section>
+              </div>
+            </section>
+            <section class="terms">
+              <h3>Terms & conditions</h3>
+              <ul>
+                <li><b>Payment:</b> 10% advance with purchase order, 80% after Solar Sanction letter, 10% after successful installation.</li>
+                <li><b>Average Solar Generation:</b> Is dependent on proper cleaning of panel, a clear south-facing roof, and no shadow.</li>
+                <li><b>Plant Warranty:</b> 5 years.</li>
+                <li>Net Meter and MSEB approval charges are inclusive.</li>
+                <li>Solar panel cleaning is in the client's scope.</li>
+                <li>Any extra electrical or other material mandated by MSEB other than Net & Gen meter will be charged extra.</li>
+                <li>Load expansion demand is in the customer's scope.</li>
+              </ul>
+            </section>
+            <p class="thanks">Thank you for choosing us for your solar installation.</p>
+            <section class="authorization" aria-label="Company stamp and signature area">
+              <div class="seal-box"><div class="empty-upload">COMPANY STAMP<br>AREA</div></div>
+              <div class="signature-box"><span class="auth-label">FOR SIDDHI ENERGY</span><div class="signature-line">Authorised Signatory</div></div>
+            </section>
+            <span class="page-number">Page 2 of 2</span>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <!-- These libraries capture each A4 sheet separately, so PDF export is always exactly two pages. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script>
+    (() => {
+      const form = document.getElementById('quotationForm');
+      const status = document.getElementById('status');
+      const emptyText = 'To be confirmed';
+      let logoURL = '';
+
+      const displayDate = value => {
+        if (!value) return '';
+        const [year, month, day] = value.split('-').map(Number);
+        return new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }).format(new Date(year, month - 1, day));
+      };
+      const formatCurrency = value => {
+        if (!String(value).trim()) return '';
+        const amount = Number(value);
+        if (!Number.isFinite(amount)) return value;
+        return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(amount);
+      };
+      const putText = (element, value, fallback = emptyText) => {
+        const content = value.trim();
+        element.textContent = content || fallback;
+        element.classList.toggle('placeholder', !content);
+      };
+      const updatePreview = () => {
+        const values = Object.fromEntries(new FormData(form).entries());
+        document.querySelectorAll('[data-output]').forEach(element => putText(element, values[element.dataset.output] || ''));
+        putText(document.getElementById('viewProjectCost'), formatCurrency(values.projectCost || ''));
+        const isSbi = values.bankOption === 'sbi';
+        document.getElementById('bankMaharashtra').hidden = isSbi;
+        document.getElementById('bankSbi').hidden = !isSbi;
+        putText(document.getElementById('viewQuoteNo'), values.quoteNo || '', 'Not assigned');
+        putText(document.getElementById('viewQuoteDate'), displayDate(values.quoteDate || ''), 'Not selected');
+      };
+      const updateLogo = input => {
+        const file = input.files && input.files[0];
+        if (logoURL) URL.revokeObjectURL(logoURL);
+        logoURL = file ? URL.createObjectURL(file) : '';
+        document.querySelectorAll('[data-logo]').forEach(box => {
+          box.querySelector('img').src = logoURL;
+          box.classList.toggle('has-image', Boolean(file));
+        });
+      };
+      const setStatus = (message, isError = false) => {
+        status.textContent = message;
+        status.classList.toggle('error', isError);
+      };
+      const fileName = () => {
+        const name = document.getElementById('customerName').value.trim().replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'Customer';
+        return `Siddhi-Energy-Quotation-${name}`;
+      };
+
+      form.addEventListener('input', updatePreview);
+      form.addEventListener('change', event => {
+        if (event.target.id === 'logoUpload') updateLogo(event.target);
+        updatePreview();
+      });
+      document.getElementById('quoteDate').value = new Date().toISOString().slice(0, 10);
+      updatePreview();
+
+      document.getElementById('printButton').addEventListener('click', () => {
+        setStatus('Opening print dialog… choose “Save as PDF” to create a PDF file.');
+        window.print();
+      });
+      document.getElementById('downloadButton').addEventListener('click', async () => {
+        if (!window.html2canvas || !window.jspdf || !window.jspdf.jsPDF) {
+          setStatus('PDF download needs an internet connection. Opening the print dialog instead — select “Save as PDF”.', true);
+          window.print();
+          return;
+        }
+        try {
+          setStatus('Creating your two-page PDF…');
+          document.body.classList.add('pdf-export');
+          const sheets = [...document.querySelectorAll('.quote-page')];
+          const pdf = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+
+          for (let index = 0; index < sheets.length; index += 1) {
+            const sheet = sheets[index];
+            const canvas = await window.html2canvas(sheet, {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: '#ffffff',
+              logging: false,
+              scrollX: 0,
+              scrollY: 0
+            });
+            if (index > 0) pdf.addPage('a4', 'portrait');
+            pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+          }
+          pdf.save(fileName() + '.pdf');
+          setStatus('Two-page PDF downloaded successfully.');
+        } catch (error) {
+          setStatus('Could not create the PDF. Opening the print dialog so you can Save as PDF.', true);
+          window.print();
+        } finally {
+          document.body.classList.remove('pdf-export');
+        }
+      });
+      document.getElementById('resetButton').addEventListener('click', () => {
+        if (!confirm('Clear all customer and uploaded details?')) return;
+        form.reset();
+        document.getElementById('quoteDate').value = new Date().toISOString().slice(0, 10);
+        updateLogo(document.getElementById('logoUpload'));
+        updatePreview();
+        setStatus('Customer details cleared.');
+      });
+    })();
+  </script>
+</body>
+</html>
+
