@@ -106,6 +106,8 @@
     }
     .field textarea { min-height: 64px; resize: vertical; }
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .unit-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .unit-inputs .field { margin: 0; }
     .upload-note { margin: 6px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
     #status { min-height: 16px; margin: 9px 0 0; color: #d9f5ee; font-size: 12px; text-align: right; }
     #status.error { color: #ffe4a9; }
@@ -149,7 +151,7 @@
       text-align: center;
       background: transparent;
     }
-    .logo-box img { display: none; width: 100%; height: 100%; object-fit: contain; }
+    .logo-box img { display: none; width: auto; height: auto; max-width: 39mm; max-height: 22mm; object-fit: contain; }
     .logo-box.has-image img { display: block; }
     .logo-box.has-image span { display: none; }
 
@@ -173,6 +175,8 @@
     .cost-summary span { display: block; color: #dcefe9; font-size: 8.5px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
     .cost-summary strong { display: block; margin-top: 1mm; color: #fff; font-size: 15px; line-height: 1.1; }
     .cost-summary strong.placeholder { color: #dcefe9; font-size: 11px; font-style: italic; }
+    .cost-summary small { display: block; margin-top: 1.3mm; color: #dcefe9; font-size: 7.5px; font-style: italic; line-height: 1.25; }
+    .cost-summary small.placeholder { display: none; }
     .page-number { position: absolute; right: 1mm; bottom: 1mm; color: #6c827c; font-size: 8px; }
 
     .bank-title { margin: 0; color: var(--green-dark); font-size: 20px; letter-spacing: -.025em; }
@@ -268,7 +272,7 @@
         <section class="form-section">
           <h3>Reference</h3>
           <div class="two-col">
-            <div class="field"><label for="quoteNo">Quotation No.</label><input id="quoteNo" name="quoteNo" placeholder="SE-2026-001"></div>
+            <div class="field"><label for="quoteNo">Quotation / Receipt No.</label><input id="quoteNo" name="quoteNo" placeholder="Auto-generated when you download"></div>
             <div class="field"><label for="quoteDate">Date</label><input id="quoteDate" name="quoteDate" type="date"></div>
           </div>
         </section>
@@ -298,11 +302,9 @@
         <section class="form-section">
           <h3>Structure</h3>
           <div class="field"><label for="structureType">Type of structure</label><select id="structureType" name="structureType"><option value="">Select structure</option><option>Box Pipe</option><option>C-Channel</option></select></div>
-          <div class="field"><label for="pipeSize">Size of pipe for structure</label><input id="pipeSize" name="pipeSize" placeholder="e.g. 2 in × 2 in"></div>
-          <div class="two-col">
-            <div class="field"><label for="frontHeight">Front height</label><input id="frontHeight" name="frontHeight" placeholder="e.g. 5 ft"></div>
-            <div class="field"><label for="endHeight">End height</label><input id="endHeight" name="endHeight" placeholder="e.g. 3 ft"></div>
-          </div>
+          <div class="field"><label>Size of pipe for structure</label><div class="unit-inputs"><div class="field"><label for="pipeSizeFeet">Feet</label><input id="pipeSizeFeet" name="pipeSizeFeet" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0"></div><div class="field"><label for="pipeSizeInches">Inches</label><input id="pipeSizeInches" name="pipeSizeInches" type="number" min="0" max="11.99" step="0.01" inputmode="decimal" placeholder="0"></div></div></div>
+          <div class="field"><label>Structure front height</label><div class="unit-inputs"><div class="field"><label for="frontHeightFeet">Feet</label><input id="frontHeightFeet" name="frontHeightFeet" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0"></div><div class="field"><label for="frontHeightInches">Inches</label><input id="frontHeightInches" name="frontHeightInches" type="number" min="0" max="11.99" step="0.01" inputmode="decimal" placeholder="0"></div></div></div>
+          <div class="field"><label>Structure end height</label><div class="unit-inputs"><div class="field"><label for="endHeightFeet">Feet</label><input id="endHeightFeet" name="endHeightFeet" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0"></div><div class="field"><label for="endHeightInches">Inches</label><input id="endHeightInches" name="endHeightInches" type="number" min="0" max="11.99" step="0.01" inputmode="decimal" placeholder="0"></div></div></div>
         </section>
         <section class="form-section">
           <h3>Branding & approval</h3>
@@ -327,7 +329,7 @@
             </header>
             <div class="document-strip">
               <h2>Solar Installation Quotation</h2>
-              <div class="meta"><span>Quotation No.<br><b id="viewQuoteNo" class="placeholder">Not assigned</b></span><span>Date<br><b id="viewQuoteDate" class="placeholder">Not selected</b></span></div>
+              <div class="meta"><span>Quotation / Receipt No.<br><b id="viewQuoteNo" class="placeholder">Not assigned</b></span><span>Date<br><b id="viewQuoteDate" class="placeholder">Not selected</b></span></div>
             </div>
             <section>
               <p class="section-kicker">Customer & system details</p>
@@ -341,15 +343,15 @@
                   <tr><th>Type of Solar Panel</th><td data-output="panelType"></td></tr>
                   <tr><th>Type of Solar Inverter</th><td data-output="inverterType"></td></tr>
                   <tr><th>Type of Structure</th><td data-output="structureType"></td></tr>
-                  <tr><th>Size of Pipe for Structure</th><td data-output="pipeSize"></td></tr>
-                  <tr><th>Structure Front Height</th><td data-output="frontHeight"></td></tr>
-                  <tr><th>Structure End Height</th><td data-output="endHeight"></td></tr>
+                  <tr><th>Size of Pipe for Structure</th><td id="viewPipeSize" class="placeholder">To be confirmed</td></tr>
+                  <tr><th>Structure Front Height</th><td id="viewFrontHeight" class="placeholder">To be confirmed</td></tr>
+                  <tr><th>Structure End Height</th><td id="viewEndHeight" class="placeholder">To be confirmed</td></tr>
                 </tbody>
               </table>
             </section>
             <div class="page-1-footer">
               <p class="page-bottom-note">This quotation is prepared specifically for the customer and the solar-system details shown above. Please verify the details before confirming the order.</p>
-              <div class="cost-summary"><span>Total Project Cost</span><strong id="viewProjectCost" class="placeholder">To be confirmed</strong></div>
+              <div class="cost-summary"><span>Total Project Cost</span><strong id="viewProjectCost" class="placeholder">To be confirmed</strong><small id="viewProjectCostWords" class="placeholder">Amount in words</small></div>
             </div>
             <span class="page-number">Page 1 of 2</span>
           </div>
@@ -387,6 +389,7 @@
                     <dt>Account No.</dt><dd>00000044463908778</dd>
                     <dt>IFSC Code</dt><dd>SBIN0001941</dd>
                     <dt>Branch</dt><dd>Shastri Nagar</dd>
+                    <dt>GST IN</dt><dd>27CHVPS0880A1Z0</dd>
                     <dt>Address</dt><dd>Near Hanuman Mandir, Prabhat Singh, Mul Road Hanuman Temple, Sanjay Nagar, Chandrapur, Maharashtra – 442401, India</dd>
                   </dl>
                 </section>
@@ -437,6 +440,49 @@
         if (!Number.isFinite(amount)) return value;
         return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(amount);
       };
+      const formatUnitNumber = value => {
+        if (!String(value).trim()) return '';
+        const number = Number(value);
+        return Number.isFinite(number) ? (Number.isInteger(number) ? String(number) : String(number)) : '';
+      };
+      const formatFeetInches = (feet, inches) => {
+        const parts = [];
+        const formattedFeet = formatUnitNumber(feet);
+        const formattedInches = formatUnitNumber(inches);
+        if (formattedFeet) parts.push(formattedFeet + ' ft');
+        if (formattedInches) parts.push(formattedInches + ' in');
+        return parts.join(' ');
+      };
+      const belowThousandInWords = number => {
+        const ones = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+        const tens = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+        const words = [];
+        if (number >= 100) { words.push(ones[Math.floor(number / 100)] + ' hundred'); number %= 100; }
+        if (number >= 20) words.push(tens[Math.floor(number / 10)] + (number % 10 ? '-' + ones[number % 10] : ''));
+        else if (number > 0) words.push(ones[number]);
+        return words.join(' ');
+      };
+      const numberToWords = value => {
+        let number = Math.floor(Number(value));
+        if (!Number.isFinite(number) || number < 0) return '';
+        if (number === 0) return 'zero';
+        const groups = [[10000000, 'crore'], [100000, 'lakh'], [1000, 'thousand'], [1, '']];
+        const parts = [];
+        groups.forEach(group => {
+          const groupValue = Math.floor(number / group[0]);
+          if (groupValue) { parts.push(belowThousandInWords(groupValue) + (group[1] ? ' ' + group[1] : '')); number %= group[0]; }
+        });
+        return parts.join(' ');
+      };
+      const amountInWords = value => {
+        if (!String(value).trim()) return '';
+        const amount = Number(value);
+        if (!Number.isFinite(amount) || amount < 0) return '';
+        const rupees = Math.floor(amount);
+        const paise = Math.round((amount - rupees) * 100);
+        const words = 'Rupees ' + numberToWords(rupees) + (paise ? ' and ' + numberToWords(paise) + ' paise' : '') + ' only';
+        return words.charAt(0).toUpperCase() + words.slice(1);
+      };
       const putText = (element, value, fallback = emptyText) => {
         const content = value.trim();
         element.textContent = content || fallback;
@@ -446,6 +492,10 @@
         const values = Object.fromEntries(new FormData(form).entries());
         document.querySelectorAll('[data-output]').forEach(element => putText(element, values[element.dataset.output] || ''));
         putText(document.getElementById('viewProjectCost'), formatCurrency(values.projectCost || ''));
+        putText(document.getElementById('viewProjectCostWords'), amountInWords(values.projectCost || ''), '');
+        putText(document.getElementById('viewPipeSize'), formatFeetInches(values.pipeSizeFeet || '', values.pipeSizeInches || ''));
+        putText(document.getElementById('viewFrontHeight'), formatFeetInches(values.frontHeightFeet || '', values.frontHeightInches || ''));
+        putText(document.getElementById('viewEndHeight'), formatFeetInches(values.endHeightFeet || '', values.endHeightInches || ''));
         const isSbi = values.bankOption === 'sbi';
         document.getElementById('bankMaharashtra').hidden = isSbi;
         document.getElementById('bankSbi').hidden = !isSbi;
@@ -467,7 +517,30 @@
       };
       const fileName = () => {
         const name = document.getElementById('customerName').value.trim().replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'Customer';
-        return `Siddhi-Energy-Quotation-${name}`;
+        const reference = document.getElementById('quoteNo').value.trim().replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'Draft';
+        return 'Siddhi-Energy-Quotation-' + reference + '-' + name;
+      };
+      const nextQuotationNumber = () => {
+        const enteredDate = document.getElementById('quoteDate').value;
+        const year = Number(enteredDate.slice(0, 4)) || new Date().getFullYear();
+        const key = 'siddhi-energy-quotation-sequence-' + year;
+        try {
+          const next = Number(localStorage.getItem(key) || '0') + 1;
+          localStorage.setItem(key, String(next));
+          return 'SE-' + year + '-' + String(next).padStart(4, '0');
+        } catch (error) {
+          return 'SE-' + year + '-' + String(Date.now()).slice(-6);
+        }
+      };
+      const ensureQuotationNumber = () => {
+        const field = document.getElementById('quoteNo');
+        if (field.value.trim()) return;
+        field.value = nextQuotationNumber();
+        updatePreview();
+      };
+      const waitForLogoImages = async () => {
+        const images = [...document.querySelectorAll('[data-logo] img')].filter(image => image.getAttribute('src'));
+        await Promise.all(images.map(image => image.decode ? image.decode().catch(() => {}) : Promise.resolve()));
       };
 
       form.addEventListener('input', updatePreview);
@@ -479,16 +552,19 @@
       updatePreview();
 
       document.getElementById('printButton').addEventListener('click', () => {
+        ensureQuotationNumber();
         setStatus('Opening print dialog… choose “Save as PDF” to create a PDF file.');
         window.print();
       });
       document.getElementById('downloadButton').addEventListener('click', async () => {
+        ensureQuotationNumber();
         if (!window.html2canvas || !window.jspdf || !window.jspdf.jsPDF) {
           setStatus('PDF download needs an internet connection. Opening the print dialog instead — select “Save as PDF”.', true);
           window.print();
           return;
         }
         try {
+          await waitForLogoImages();
           setStatus('Creating your two-page PDF…');
           document.body.classList.add('pdf-export');
           const sheets = [...document.querySelectorAll('.quote-page')];
