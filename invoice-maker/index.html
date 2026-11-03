@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A private, offline Siddhi Energy invoice maker.">
+  <title>Siddhi Energy - Invoice Maker</title>
+  <style>
+    :root {
+      --ink: #17212b;
+      --muted: #607080;
+      --paper: #ffffff;
+      --canvas: #eef3f5;
+      --line: #c7d2d9;
+      --line-strong: #8496a3;
+      --brand: #0d6b42;
+      --brand-deep: #08442d;
+      --brand-soft: #e6f4ec;
+      --accent: #e98a18;
+      --danger: #ad2630;
+      --shadow: 0 16px 45px rgba(22, 46, 63, .14);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--canvas);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.4;
+    }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px clamp(18px, 4vw, 48px);
+      color: #fff;
+      background: linear-gradient(112deg, var(--brand-deep), var(--brand));
+      box-shadow: 0 3px 16px rgba(1, 50, 30, .22);
+    }
+    .app-brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .app-badge {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      flex: 0 0 auto;
+      color: #fff;
+      font-weight: 900;
+      letter-spacing: -.07em;
+      border: 2px solid rgba(255,255,255,.62);
+      border-radius: 11px;
+    }
+    .app-brand strong { display: block; letter-spacing: .04em; font-size: 15px; }
+    .app-brand span { display: block; color: rgba(255,255,255,.74); font-size: 12px; }
+    .header-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+    .btn {
+      min-height: 39px;
+      padding: 8px 14px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      font-weight: 760;
+      transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 5px 13px rgba(4, 40, 25, .16); }
+    .btn-primary { color: #fff; background: var(--brand); }
+    .app-header .btn-primary { color: var(--brand-deep); background: #fff; }
+    .btn-secondary { color: var(--brand-deep); background: var(--brand-soft); border-color: #a9d7bb; }
+    .btn-ghost { color: #fff; background: transparent; border-color: rgba(255,255,255,.58); }
+    .btn-danger { color: #8d1c24; background: #fff0f1; border-color: #e2a9ad; }
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(340px, 460px) minmax(640px, 1fr);
+      gap: 24px;
+      align-items: start;
+      max-width: 1800px;
+      margin: 0 auto;
+      padding: 26px clamp(16px, 3vw, 40px) 46px;
+    }
+    .form-panel {
+      padding: 20px;
+      background: var(--paper);
+      border: 1px solid #d8e0e4;
+      border-radius: 14px;
+      box-shadow: 0 7px 24px rgba(29, 59, 73, .08);
+    }
+    .intro { margin: 0 0 18px; color: var(--muted); font-size: 13px; }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin: 25px 0 12px;
+      font-size: 15px;
+      font-weight: 850;
+      letter-spacing: .015em;
+    }
+    .section-title:first-of-type { margin-top: 0; }
+    .section-title::before { content: ""; width: 4px; height: 18px; border-radius: 4px; background: var(--accent); }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .form-grid.one { grid-template-columns: 1fr; }
+    .field { display: grid; gap: 5px; min-width: 0; }
+    .field.span-two { grid-column: span 2; }
+    label { color: #34424c; font-size: 12px; font-weight: 780; }
+    input, textarea, select {
+      width: 100%;
+      min-height: 39px;
+      padding: 8px 10px;
+      color: var(--ink);
+      background: #fff;
+      border: 1px solid #b7c6ce;
+      border-radius: 7px;
+      outline: none;
+    }
+    textarea { min-height: 78px; resize: vertical; }
+    input:focus, textarea:focus, select:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(13, 107, 66, .13); }
+    .invalid { border-color: var(--danger) !important; box-shadow: 0 0 0 3px rgba(173,38,48,.10) !important; }
+    .file-control {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 82px;
+      padding: 12px;
+      overflow: hidden;
+      text-align: center;
+      color: var(--brand-deep);
+      background: #f5fbf7;
+      border: 1px dashed #75ae8e;
+      border-radius: 8px;
+    }
+    .file-control input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .file-control small { color: var(--muted); }
+    .same-address { display: flex; align-items: center; gap: 8px; margin: 9px 0 11px; font-size: 13px; font-weight: 700; color: var(--brand-deep); }
+    .same-address input { width: 17px; min-height: 17px; accent-color: var(--brand); }
+    .form-note { margin: 10px 0 0; color: var(--muted); font-size: 12px; }
+    .items-editor { overflow-x: auto; border: 1px solid #cbd7dc; border-radius: 9px; }
+    .edit-items { width: 100%; min-width: 970px; border-collapse: collapse; font-size: 12px; }
+    .edit-items th { padding: 8px 5px; color: #fff; text-align: left; white-space: nowrap; background: var(--brand-deep); }
+    .edit-items td { padding: 5px; vertical-align: top; border-top: 1px solid #dbe3e7; }
+    .edit-items input { min-height: 34px; padding: 5px 6px; border-radius: 5px; }
+    .edit-items .num { text-align: right; }
+    .calc-cell { padding-top: 13px !important; color: #233c30; text-align: right; white-space: nowrap; font-weight: 800; }
+    .icon-btn { width: 32px; min-height: 34px; padding: 4px; border: 1px solid #e0afb3; border-radius: 5px; color: #9f2029; background: #fff4f4; font-size: 17px; }
+    .editor-actions { display: flex; gap: 10px; margin-top: 10px; }
+    .status-message { display: none; margin-top: 14px; padding: 10px 12px; color: #8d1c24; background: #fff0f1; border: 1px solid #edbec2; border-radius: 7px; font-size: 13px; }
+    .status-message.show { display: block; }
+    .privacy-note { margin: 24px 0 0; padding: 12px; color: #355248; background: #f0f8f3; border-radius: 8px; font-size: 12px; }
+    .preview-wrap { min-width: 0; }
+    .preview-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
+    .preview-toolbar h1 { margin: 0; color: var(--brand-deep); font-size: 19px; }
+    .preview-toolbar span { color: var(--muted); font-size: 12px; }
+    .paper-surface { overflow: auto; padding: 18px; background: #d9e2e6; border-radius: 14px; }
+    .invoice-sheet {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      padding: 12mm;
+      color: #111;
+      background: #fff;
+      box-shadow: var(--shadow);
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 10.3pt;
+      line-height: 1.32;
+    }
+    .invoice-sheet * { box-sizing: border-box; }
+    .invoice-sheet table { border-collapse: collapse; }
+    .invoice-top { display: grid; grid-template-columns: 1fr 56mm; gap: 12px; align-items: start; min-height: 36mm; }
+    .company-name { margin: 0; font-size: 23pt; line-height: 1.03; font-weight: 900; letter-spacing: .01em; }
+    .company-address { margin: 7px 0 0; max-width: 110mm; font-size: 9.8pt; font-weight: 650; }
+    .company-contact { margin: 5px 0 0; font-size: 10.3pt; font-weight: 650; }
+    .logo-box { display: grid; place-items: center; width: 56mm; height: 27mm; overflow: hidden; }
+    .logo-box img { display: block; width: 100%; height: 100%; object-fit: contain; }
+    .logo-fallback { color: var(--brand); font-size: 21pt; font-weight: 900; letter-spacing: .04em; }
+    .invoice-heading { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 12px; margin: 7mm 0 4mm; }
+    .invoice-heading h2 { grid-column: 1 / -1; margin: 0; text-align: center; font-size: 18pt; line-height: 1; }
+    .gst-line { font-size: 10pt; font-weight: 700; }
+    .invoice-meta { text-align: right; font-size: 10.5pt; line-height: 1.75; }
+    .invoice-meta strong { font-size: 11.6pt; }
+    .address-table { width: 100%; margin-bottom: 4mm; table-layout: fixed; }
+    .address-table th, .address-table td { border: .35mm solid #333; }
+    .address-table th { padding: 1.7mm 2mm; text-align: left; background: #f2f4f4; font-size: 10.2pt; }
+    .address-table td { height: 26mm; padding: 2mm; vertical-align: top; }
+    .address-name { font-weight: 700; }
+    .address-phone { margin-top: 2mm; font-weight: 700; }
+    .invoice-items { width: 100%; table-layout: fixed; font-size: 9.2pt; }
+    .invoice-items th, .invoice-items td { border: .35mm solid #333; }
+    .invoice-items th { padding: 1.6mm 1mm; text-align: center; vertical-align: middle; font-size: 8.8pt; line-height: 1.14; }
+    .invoice-items td { padding: 2mm 1.2mm; vertical-align: top; }
+    .invoice-items .center { text-align: center; }
+    .invoice-items .right { text-align: right; white-space: nowrap; }
+    .invoice-items tbody tr { break-inside: avoid; }
+    .desc-cell { font-weight: 600; }
+    .muted-value { color: #56626a; }
+    .invoice-bottom { display: grid; grid-template-columns: 1.35fr 1.35fr 1.45fr; margin-top: 4mm; border: .35mm solid #333; }
+    .bank-box, .words-box, .totals-box { min-height: 42mm; padding: 2mm; }
+    .bank-box, .words-box { border-right: .35mm solid #333; }
+    .box-title { margin: 0 0 1.5mm; font-size: 10pt; font-weight: 800; }
+    .bank-box p { margin: 1.2mm 0; }
+    .words-box p { margin: 0; font-weight: 700; }
+    .total-line { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 1.5mm 0; border-bottom: .25mm solid #777; text-align: right; }
+    .total-line:last-child { border-bottom: 0; }
+    .total-line.grand { margin-top: 1mm; padding: 2mm 0 0; border-top: .5mm solid #222; border-bottom: 0; font-size: 11.5pt; font-weight: 900; }
+    .invoice-footer { display: grid; grid-template-columns: 2.25fr 1fr; min-height: 35mm; border: .35mm solid #333; border-top: 0; }
+    .footer-note { display: flex; flex-direction: column; justify-content: end; padding: 2mm; }
+    .footer-note p { margin: 1.5mm 0; }
+    .paid { color: #075d37; font-weight: 900; }
+    .signature-box { position: relative; display: flex; flex-direction: column; justify-content: space-between; min-height: 35mm; padding: 2mm; text-align: center; border-left: .35mm solid #333; }
+    .signature-box img { position: absolute; top: 9mm; right: 4mm; left: 4mm; max-width: calc(100% - 8mm); max-height: 16mm; margin: auto; object-fit: contain; }
+    .signature-for { font-size: 9.5pt; }
+    .signature-label { font-size: 9.2pt; font-weight: 800; }
+    .tax-summary { width: 105mm; margin-top: 4mm; font-size: 9pt; }
+    .tax-summary th, .tax-summary td { padding: 1.4mm; border: .35mm solid #333; text-align: right; }
+    .tax-summary th { text-align: center; background: #f2f4f4; font-size: 8.7pt; }
+    .empty-summary { text-align: center !important; color: #56626a; }
+    @media (max-width: 1220px) {
+      .workspace { grid-template-columns: 1fr; }
+      .form-panel { max-width: 860px; margin: 0 auto; }
+    }
+    @media (max-width: 620px) {
+      .app-header { align-items: flex-start; flex-direction: column; }
+      .header-actions { justify-content: flex-start; }
+      .form-panel { padding: 16px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .field.span-two { grid-column: auto; }
+      .paper-surface { margin: 0 -16px; padding: 8px; border-radius: 0; }
+      .invoice-sheet { transform-origin: top left; }
+    }
+    @media print {
+      @page { size: A4 portrait; margin: 0; }
+      html, body { width: 210mm; height: auto; background: #fff; font-size: 11pt; }
+      body * { visibility: hidden !important; }
+      #invoicePreview, #invoicePreview * { visibility: visible !important; }
+      .app-header, .form-panel, .preview-toolbar, .privacy-note { display: none !important; }
+      .workspace, .preview-wrap, .paper-surface { display: block !important; margin: 0 !important; padding: 0 !important; background: #fff !important; }
+      #invoicePreview { position: absolute; top: 0; left: 0; width: 210mm; min-height: 297mm; padding: 12mm; box-shadow: none; }
+      .invoice-items tr, .invoice-bottom, .invoice-footer, .tax-summary { break-inside: avoid; page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-brand">
+      <div class="app-badge">SE</div>
+      <div><strong>SIDDHI ENERGY</strong><span>Private invoice maker - works offline</span></div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-ghost" type="button" id="previewButton">Preview invoice</button>
+      <button class="btn btn-primary" type="button" id="downloadButton">Download PDF</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="form-panel" aria-label="Invoice details form">
+      <p class="intro">Fill in the form. Every change updates the invoice preview instantly. No data is saved to your browser or sent anywhere.</p>
+
+      <form id="invoiceForm" novalidate>
+        <h2 class="section-title">Invoice details</h2>
+        <div class="form-grid">
+          <div class="field"><label for="invoiceNo">Invoice No.</label><input id="invoiceNo" required placeholder="e.g., SE-2026-001"></div>
+          <div class="field"><label for="invoiceDate">Invoice date</label><input id="invoiceDate" type="date" required></div>
+          <div class="field"><label for="targetGrand">Grand Total (₹)</label><input id="targetGrand" inputmode="decimal" placeholder="Enter final invoice total" required></div>
+          <div class="field"><label for="paymentStatus">Status</label><select id="paymentStatus"><option value="Unpaid">Unpaid</option><option value="Paid">Paid</option><option value="Partially Paid">Partially Paid</option></select></div>
+        </div>
+
+        <h2 class="section-title">Company &amp; bank details</h2>
+        <div class="form-grid">
+          <div class="field span-two"><label for="vendorSelect">Invoice vendor</label><select id="vendorSelect"><option value="siddhi">Siddhi Energy</option><option value="helios">HELIOS ENERGY</option></select></div>
+          <div class="field"><label for="companyName">Company name</label><input id="companyName" value="Siddhi Energy"></div>
+          <div class="field"><label for="companyPhone">Contact No.</label><input id="companyPhone" inputmode="tel" value="7249675642"></div>
+          <div class="field span-two"><label for="companyAddress">Company address</label><textarea id="companyAddress">Sanjay Nagar, Near Hanuman Mandir, Mul Road Chandrapur - 442401</textarea></div>
+          <div class="field"><label for="companyGST">GSTIN</label><input id="companyGST" value="27CHPS0880A1Z0"></div>
+          <div class="field"><label for="bankName">Bank name</label><input id="bankName" value="Siddhi Energy"></div>
+          <div class="field span-two"><label for="bankBranch">Branch</label><input id="bankBranch" value="SBI (Shastrinagar, Mul Road, Chandrapur - 442401)"></div>
+          <div class="field"><label for="bankAccount">Account No.</label><input id="bankAccount" inputmode="numeric" value="44463908778"></div>
+          <div class="field"><label for="bankIFSC">IFSC (optional)</label><input id="bankIFSC" placeholder="Enter IFSC if needed"></div>
+        </div>
+
+        <h2 class="section-title">Logo &amp; signature</h2>
+        <div class="form-grid">
+          <div class="field"><label>Company logo (top-right)</label><div class="file-control"><input id="logoUpload" type="file" accept="image/*"><span>Choose logo image<br><small>PNG, JPG, or WEBP</small></span></div></div>
+          <div class="field"><label>Signature / stamp (optional)</label><div class="file-control"><input id="signatureUpload" type="file" accept="image/*"><span>Choose signature or stamp<br><small>Shown in the bottom-right box</small></span></div></div>
+        </div>
+
+        <h2 class="section-title">Billing address</h2>
+        <div class="form-grid">
+          <div class="field"><label for="billingName">Customer name</label><input id="billingName" required placeholder="Customer name"></div>
+          <div class="field"><label for="billingMobile">Mobile No.</label><input id="billingMobile" inputmode="tel" placeholder="Mobile number"></div>
+          <div class="field span-two"><label for="billingAddress">Address</label><textarea id="billingAddress" placeholder="Customer address"></textarea></div>
+          <div class="field"><label for="billingGST">GSTIN (optional)</label><input id="billingGST" placeholder="Customer GSTIN"></div>
+        </div>
+
+        <h2 class="section-title">Shipping address</h2>
+        <label class="same-address"><input id="sameAsBilling" type="checkbox"> Same as billing address</label>
+        <div class="form-grid">
+          <div class="field"><label for="shippingName">Customer name</label><input id="shippingName" required placeholder="Customer name"></div>
+          <div class="field"><label for="shippingMobile">Mobile No.</label><input id="shippingMobile" inputmode="tel" placeholder="Mobile number"></div>
+          <div class="field span-two"><label for="shippingAddress">Address</label><textarea id="shippingAddress" placeholder="Shipping address"></textarea></div>
+          <div class="field"><label for="shippingGST">GSTIN (optional)</label><input id="shippingGST" placeholder="Customer GSTIN"></div>
+        </div>
+
+        <h2 class="section-title">Items &amp; tax</h2>
+        <div class="items-editor">
+          <table class="edit-items" aria-label="Invoice items">
+            <thead><tr><th style="width:34px">No.</th><th style="width:185px">Description</th><th style="width:125px">Item code</th><th style="width:82px">HSN/SAC</th><th style="width:64px">Qty</th><th style="width:70px">Unit</th><th style="width:97px">Rate ₹</th><th style="width:104px">Taxable ₹</th><th style="width:67px">CGST %</th><th style="width:67px">SGST %</th><th style="width:110px">Amount ₹</th><th style="width:42px"></th></tr></thead>
+            <tbody id="itemsBody"></tbody>
+          </table>
+        </div>
+        <div class="editor-actions"><button class="btn btn-secondary" id="addItem" type="button">+ Add optional item</button><button class="btn btn-danger" id="resetButton" type="button">Reset form</button></div>
+        <p class="form-note">Enter only the Grand Total and item quantities. The two standard items are automatically split 70% for solar system material and 30% for installation charges before tax. CGST and SGST are rounded to the nearest paisa (₹0.01) per item.</p>
+        <div class="status-message" id="statusMessage" role="alert"></div>
+      </form>
+      <p class="privacy-note"><strong>Privacy:</strong> this page does not use old invoices, browser history, cloud storage, or external servers. It starts fresh each time you open it.</p>
+    </section>
+
+    <section class="preview-wrap" aria-label="Invoice preview">
+      <div class="preview-toolbar"><div><h1>Live invoice preview</h1><span>Review the details before downloading.</span></div><button class="btn btn-primary" type="button" id="printButton">Download / Print PDF</button></div>
+      <div class="paper-surface">
+        <article class="invoice-sheet" id="invoicePreview" aria-label="Printable invoice preview"></article>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+      const $ = (id) => document.getElementById(id);
+      const form = $("invoiceForm");
+      const itemsBody = $("itemsBody");
+      const preview = $("invoicePreview");
+      let logoDataUrl = "";
+      let signatureDataUrl = "";
+
+      const vendorProfiles = {
+        siddhi: {
+          companyName: "Siddhi Energy", companyPhone: "7249675642",
+          companyAddress: "Sanjay Nagar, Near Hanuman Mandir, Mul Road Chandrapur - 442401",
+          companyGST: "27CHPS0880A1Z0", bankName: "Siddhi Energy",
+          bankBranch: "SBI (Shastrinagar, Mul Road, Chandrapur - 442401)", bankAccount: "44463908778", bankIFSC: ""
+        },
+        helios: {
+          companyName: "HELIOS ENERGY", companyPhone: "9595653232",
+          companyAddress: "Office Address: Plot No. 186, Near Nag Mandir, Adarsh Nagar Ranala, Kamptee, NAGPUR - 441001",
+          companyGST: "", bankName: "HDFC BANK", bankBranch: "SURYA NAGAR",
+          bankAccount: "50200098885117", bankIFSC: "HDFC0004704"
+        }
+      };
+      const companyDefaults = vendorProfiles.siddhi;
+
+      function todayISO() {
+        const date = new Date();
+        const offset = date.getTimezoneOffset();
+        return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 10);
+      }
+      $("invoiceDate").value = todayISO();
+
+      // All financial calculations use integer minor units (paise), never JS floating point.
+      function parseScaled(value, places) {
+        const clean = String(value ?? "").replace(/[₹,\s]/g, "");
+        const match = clean.match(/^(-?)(\d*)(?:\.(\d*))?$/);
+        if (!match || (!match[2] && !match[3])) return 0n;
+        const negative = match[1] === "-";
+        const whole = BigInt(match[2] || "0");
+        const fraction = match[3] || "";
+        const scale = 10n ** BigInt(places);
+        const fractionBase = fraction.slice(0, places).padEnd(places, "0");
+        let result = whole * scale + BigInt(fractionBase || "0");
+        if (fraction.length > places && Number(fraction[places]) >= 5) result += 1n;
+        return negative ? -result : result;
+      }
+      function roundDiv(numerator, denominator) {
+        if (numerator < 0n) return -roundDiv(-numerator, denominator);
+        return (numerator + denominator / 2n) / denominator;
+      }
+      function formatScaled(value, places, trim = false) {
+        const negative = value < 0n;
+        const absolute = negative ? -value : value;
+        const scale = 10n ** BigInt(places);
+        let fraction = (absolute % scale).toString().padStart(places, "0");
+        if (trim && places) fraction = fraction.replace(/0+$/, "");
+        return `${negative ? "-" : ""}${(absolute / scale).toString()}${fraction ? "." + fraction : ""}`;
+      }
+      function indianGroup(integer) {
+        const str = String(integer);
+        if (str.length <= 3) return str;
+        const tail = str.slice(-3);
+        let head = str.slice(0, -3);
+        const chunks = [];
+        while (head.length > 2) { chunks.unshift(head.slice(-2)); head = head.slice(0, -2); }
+        if (head) chunks.unshift(head);
+        return `${chunks.join(",")},${tail}`;
+      }
+      function rupees(paise) {
+        const negative = paise < 0n ? "-" : "";
+        const absolute = paise < 0n ? -paise : paise;
+        return `${negative}₹${indianGroup(absolute / 100n)}.${(absolute % 100n).toString().padStart(2, "0")}`;
+      }
+      function escapeHTML(value) {
+        return String(value ?? "").replace(/[&<>'"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
+      }
+      function multiline(value, fallback = "-") {
+        const safe = String(value ?? "").trim();
+        return safe ? escapeHTML(safe).replace(/\n/g, "<br>") : `<span class="muted-value">${fallback}</span>`;
+      }
+      function read(id) { return $(id).value.trim(); }
+      function formatDate(value) {
+        if (!value) return "-";
+        const [year, month, day] = value.split("-").map(Number);
+        return new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(year, month - 1, day));
+      }
+      function wordsUnderThousand(number) {
+        const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+        const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+        if (number < 20) return ones[number];
+        if (number < 100) return `${tens[Math.floor(number / 10)]}${number % 10 ? " " + ones[number % 10] : ""}`;
+        return `${ones[Math.floor(number / 100)]} Hundred${number % 100 ? " " + wordsUnderThousand(number % 100) : ""}`;
+      }
+      function integerToIndianWords(value) {
+        if (value === 0n) return "Zero";
+        const units = ["", "Thousand", "Lakh", "Crore", "Arab", "Kharab", "Neel", "Padma"];
+        const parts = [];
+        let current = value;
+        const last = Number(current % 1000n);
+        if (last) parts.unshift(wordsUnderThousand(last));
+        current /= 1000n;
+        let unitIndex = 1;
+        while (current > 0n) {
+          const group = Number(current % 100n);
+          if (group) parts.unshift(`${wordsUnderThousand(group)} ${units[unitIndex]}`.trim());
+          current /= 100n;
+          unitIndex += 1;
+          if (unitIndex >= units.length && current > 0n) { parts.unshift(current.toString()); break; }
+        }
+        return parts.join(" ");
+      }
+      function amountInWords(paise) {
+        const absolute = paise < 0n ? -paise : paise;
+        const rupeePart = absolute / 100n;
+        const paisaPart = Number(absolute % 100n);
+        return `${paise < 0n ? "Minus " : ""}Rupees ${integerToIndianWords(rupeePart)} and Paise ${integerToIndianWords(BigInt(paisaPart))} only`;
+      }
+
+      // Rates retain six decimal places internally so a Grand Total stays exact even when quantity changes.
+      const RATE_SCALE = 1000000n;
+      const RATE_DENOMINATOR = 10000000n; // 1,000 quantity units x 1,000,000 rate units / 100 paise
+      const standardItems = {
+        solar: { description: "Supply of Solar System Material", hsn: "7308", cgst: "2.50", sgst: "2.50", share: 7000n },
+        installation: { description: "Installation Charges", hsn: "9954", cgst: "9.00", sgst: "9.00", share: 3000n }
+      };
+      function itemMetrics(row) {
+        const quantity = parseScaled(row.querySelector(".item-qty").value, 3);
+        const rate = parseScaled(row.querySelector(".item-rate").value, 6);
+        const cgstRate = parseScaled(row.querySelector(".item-cgst").value, 2);
+        const sgstRate = parseScaled(row.querySelector(".item-sgst").value, 2);
+        const taxable = roundDiv(quantity * rate, RATE_DENOMINATOR);
+        const cgst = roundDiv(taxable * cgstRate, 10000n);
+        const sgst = roundDiv(taxable * sgstRate, 10000n);
+        return { quantity, rate, cgstRate, sgstRate, taxable, cgst, sgst, amount: taxable + cgst + sgst };
+      }
+      function formatRate(rate) {
+        const negative = rate < 0n ? "-" : "";
+        const absolute = rate < 0n ? -rate : rate;
+        let fraction = (absolute % RATE_SCALE).toString().padStart(6, "0").replace(/0+$/, "");
+        if (fraction.length < 2) fraction = fraction.padEnd(2, "0");
+        return `${negative}₹${indianGroup(absolute / RATE_SCALE)}.${fraction}`;
+      }
+      function createItemRow(preset = null) {
+        const item = preset ? standardItems[preset] : null;
+        const fixed = Boolean(item);
+        const row = document.createElement("tr");
+        if (preset) row.dataset.preset = preset;
+        row.innerHTML = `
+          <td class="item-number"></td>
+          <td><input class="item-description" ${fixed ? "readonly" : ""} value="${item ? item.description : ""}" placeholder="Item description" aria-label="Item description"></td>
+          <td><input class="item-code" readonly value="${item ? item.description : ""}" placeholder="Same as description" aria-label="Item code"></td>
+          <td><input class="item-hsn" ${fixed ? "readonly" : ""} inputmode="numeric" value="${item ? item.hsn : ""}" placeholder="HSN/SAC" aria-label="HSN or SAC"></td>
+          <td><input class="item-qty num" inputmode="decimal" value="1" aria-label="Quantity"></td>
+          <td><input class="item-unit" value="nos" aria-label="Unit"></td>
+          <td><input class="item-rate num" ${fixed ? "readonly" : ""} value="0.000000" aria-label="${fixed ? "Automatically calculated rate" : "Rate"}"></td>
+          <td class="calc-cell item-taxable">₹0.00</td>
+          <td><input class="item-cgst num" ${fixed ? "readonly" : ""} inputmode="decimal" value="${item ? item.cgst : "0.00"}" aria-label="CGST percentage"></td>
+          <td><input class="item-sgst num" ${fixed ? "readonly" : ""} inputmode="decimal" value="${item ? item.sgst : "0.00"}" aria-label="SGST percentage"></td>
+          <td class="calc-cell item-amount">₹0.00</td>
+          <td>${fixed ? '<span title="Standard item">🔒</span>' : '<button class="icon-btn remove-item" type="button" aria-label="Remove item" title="Remove item">×</button>'}</td>`;
+        itemsBody.appendChild(row);
+        return row;
+      }
+      function newItemRow() { return createItemRow(); }
+      function setRateFromTaxable(row, taxable) {
+        const quantity = parseScaled(row.querySelector(".item-qty").value, 3);
+        const rateField = row.querySelector(".item-rate");
+        rateField.value = quantity > 0n ? formatScaled(roundDiv(taxable * RATE_DENOMINATOR, quantity), 6) : "0.000000";
+      }
+      function grossForTaxable(taxable, cgstRate, sgstRate) {
+        return taxable + roundDiv(taxable * cgstRate, 10000n) + roundDiv(taxable * sgstRate, 10000n);
+      }
+      function absolute(value) { return value < 0n ? -value : value; }
+      function allocateStandardItems(targetGross) {
+        if (targetGross <= 0n) return { solar: 0n, installation: 0n };
+        const solarCGST = parseScaled(standardItems.solar.cgst, 2);
+        const solarSGST = parseScaled(standardItems.solar.sgst, 2);
+        const installationCGST = parseScaled(standardItems.installation.cgst, 2);
+        const installationSGST = parseScaled(standardItems.installation.sgst, 2);
+        const estimatedTaxable = roundDiv(targetGross * 1000n, 1089n);
+        let best = null;
+        for (let adjustment = -1000n; adjustment <= 1000n; adjustment += 1n) {
+          const taxable = estimatedTaxable + adjustment;
+          if (taxable < 0n) continue;
+          const solar = roundDiv(taxable * standardItems.solar.share, 10000n);
+          const installation = taxable - solar;
+          const gross = grossForTaxable(solar, solarCGST, solarSGST) + grossForTaxable(installation, installationCGST, installationSGST);
+          const difference = absolute(gross - targetGross);
+          if (!best || difference < best.difference) best = { solar, installation, difference };
+          if (difference === 0n) return best;
+        }
+        return best || { solar: 0n, installation: 0n, difference: targetGross };
+      }
+      function applyGrandTotal() {
+        const target = parseScaled(read("targetGrand"), 2);
+        const solarRow = [...itemsBody.rows].find(row => row.dataset.preset === "solar");
+        const installationRow = [...itemsBody.rows].find(row => row.dataset.preset === "installation");
+        if (!solarRow || !installationRow || target <= 0n) return;
+        const optionalGross = [...itemsBody.rows].filter(row => !row.dataset.preset).reduce((total, row) => total + itemMetrics(row).amount, 0n);
+        const allocation = allocateStandardItems(target > optionalGross ? target - optionalGross : 0n);
+        setRateFromTaxable(solarRow, allocation.solar);
+        setRateFromTaxable(installationRow, allocation.installation);
+      }
+      function syncItemCodes() {
+        [...itemsBody.rows].forEach(row => { row.querySelector(".item-code").value = row.querySelector(".item-description").value; });
+      }
+      function refreshItems() {
+        syncItemCodes();
+        [...itemsBody.rows].forEach((row, index) => {
+          const metrics = itemMetrics(row);
+          row.querySelector(".item-number").textContent = index + 1;
+          row.querySelector(".item-taxable").textContent = rupees(metrics.taxable);
+          row.querySelector(".item-amount").textContent = rupees(metrics.amount);
+        });
+      }
+      function itemData() {
+        return [...itemsBody.rows].map((row, index) => {
+          const metrics = itemMetrics(row);
+          return {
+            no: index + 1, description: row.querySelector(".item-description").value.trim(),
+            code: row.querySelector(".item-code").value.trim(), hsn: row.querySelector(".item-hsn").value.trim(),
+            unit: row.querySelector(".item-unit").value.trim(), ...metrics
+          };
+        });
+      }
+      function totals(items) {
+        return items.reduce((total, item) => ({
+          taxable: total.taxable + item.taxable, cgst: total.cgst + item.cgst,
+          sgst: total.sgst + item.sgst, grand: total.grand + item.amount
+        }), { taxable: 0n, cgst: 0n, sgst: 0n, grand: 0n });
+      }
+      function previewItems(items) {
+        if (!items.length) return "";
+        return items.map(item => `<tr>
+          <td class="center">${item.no}</td>
+          <td class="desc-cell">${multiline(item.description, "Item description")}</td>
+          <td>${multiline(item.code, "-")}</td>
+          <td class="right">${escapeHTML(item.hsn || "-")}</td>
+          <td class="center">${escapeHTML(formatScaled(item.quantity, 3, true))}</td>
+          <td class="center">${escapeHTML(item.unit || "-")}</td>
+          <td class="right">${formatRate(item.rate)}</td>
+          <td class="right">${rupees(item.taxable)}</td>
+          <td class="right">${formatScaled(item.cgstRate, 2)}%</td>
+          <td class="right">${formatScaled(item.sgstRate, 2)}%</td>
+          <td class="right"><strong>${rupees(item.amount)}</strong></td>
+        </tr>`).join("");
+      }
+      function taxRows(items) {
+        const grouped = new Map();
+        items.forEach(item => {
+          const key = `${item.hsn || "-"}|${item.cgstRate}|${item.sgstRate}`;
+          const value = grouped.get(key) || { hsn: item.hsn || "-", taxable: 0n, cgstRate: item.cgstRate, cgst: 0n, sgstRate: item.sgstRate, sgst: 0n };
+          value.taxable += item.taxable; value.cgst += item.cgst; value.sgst += item.sgst;
+          grouped.set(key, value);
+        });
+        if (!grouped.size) return '<tr><td colspan="6" class="empty-summary">No items added</td></tr>';
+        return [...grouped.values()].map(row => `<tr><td>${escapeHTML(row.hsn)}</td><td>${rupees(row.taxable)}</td><td>${formatScaled(row.cgstRate, 2)}%</td><td>${rupees(row.cgst)}</td><td>${formatScaled(row.sgstRate, 2)}%</td><td>${rupees(row.sgst)}</td></tr>`).join("");
+      }
+      function renderInvoice() {
+        applyGrandTotal();
+        refreshItems();
+        const items = itemData();
+        const total = totals(items);
+        const companyName = read("companyName") || companyDefaults.companyName;
+        const status = read("paymentStatus") || "Unpaid";
+        const logo = logoDataUrl ? `<img alt="Company logo" src="${logoDataUrl}">` : '<div class="logo-fallback">SIDDHI<br>ENERGY</div>';
+        const signature = signatureDataUrl ? `<img alt="Authorised signature and stamp" src="${signatureDataUrl}">` : "";
+        preview.innerHTML = `
+          <div class="invoice-top">
+            <div>
+              <h1 class="company-name">${escapeHTML(companyName.toUpperCase())}</h1>
+              <p class="company-address">${multiline(read("companyAddress"), "Company address")}</p>
+              <p class="company-contact">Contact No.: ${escapeHTML(read("companyPhone") || "-")}</p>
+            </div>
+            <div class="logo-box">${logo}</div>
+          </div>
+          <div class="invoice-heading">
+            <h2>INVOICE</h2>
+            <div class="gst-line">GSTIN: ${escapeHTML(read("companyGST") || "-")}</div>
+            <div class="invoice-meta"><div><strong>Invoice No.: ${escapeHTML(read("invoiceNo") || "-")}</strong></div><div><strong>Date:</strong> ${escapeHTML(formatDate(read("invoiceDate")))}</div></div>
+          </div>
+          <table class="address-table">
+            <thead><tr><th>Billing Address</th><th>Shipping Address</th></tr></thead>
+            <tbody><tr>
+              <td><div class="address-name">${multiline(read("billingName"), "Customer name")}</div><div>${multiline(read("billingAddress"), "Customer address")}</div>${read("billingGST") ? `<div>GSTIN: ${escapeHTML(read("billingGST"))}</div>` : ""}<div class="address-phone">Mobile No.: ${escapeHTML(read("billingMobile") || "-")}</div></td>
+              <td><div class="address-name">${multiline(read("shippingName"), "Customer name")}</div><div>${multiline(read("shippingAddress"), "Customer address")}</div>${read("shippingGST") ? `<div>GSTIN: ${escapeHTML(read("shippingGST"))}</div>` : ""}<div class="address-phone">Mobile No.: ${escapeHTML(read("shippingMobile") || "-")}</div></td>
+            </tr></tbody>
+          </table>
+          <table class="invoice-items">
+            <colgroup><col style="width:3.5%"><col style="width:24%"><col style="width:11%"><col style="width:7%"><col style="width:4.5%"><col style="width:5.5%"><col style="width:13.5%"><col style="width:13.5%"><col style="width:4.5%"><col style="width:4.5%"><col style="width:14%"></colgroup>
+            <thead><tr><th>No.</th><th>Item &amp; Description</th><th>Item Code</th><th>HSN / SAC</th><th>Qty</th><th>Unit</th><th>Rate (₹)</th><th>Taxable (₹)</th><th>CGST</th><th>SGST</th><th>Amount (₹)</th></tr></thead>
+            <tbody>${previewItems(items)}</tbody>
+          </table>
+          <section class="invoice-bottom">
+            <div class="bank-box"><h3 class="box-title">Bank Details</h3><p>Bank Name: ${escapeHTML(read("bankName") || "-")}</p><p>Branch: ${escapeHTML(read("bankBranch") || "-")}</p><p>Account No.: ${escapeHTML(read("bankAccount") || "-")}</p>${read("bankIFSC") ? `<p>IFSC: ${escapeHTML(read("bankIFSC"))}</p>` : ""}</div>
+            <div class="words-box"><h3 class="box-title">Total Invoice Amount in Words</h3><p>${escapeHTML(amountInWords(total.grand))}</p></div>
+            <div class="totals-box"><div class="total-line"><span>Total Amount before Tax (₹)</span><strong>${rupees(total.taxable)}</strong></div><div class="total-line"><span>Add CGST (₹)</span><strong>${rupees(total.cgst)}</strong></div><div class="total-line"><span>Add SGST (₹)</span><strong>${rupees(total.sgst)}</strong></div><div class="total-line grand"><span>Grand Total (₹)</span><span>${rupees(total.grand)}</span></div></div>
+          </section>
+          <section class="invoice-footer"><div class="footer-note"><p class="paid">Status: ${escapeHTML(status)}</p><p>This is a computer-generated invoice. E. &amp; O. E.</p></div><div class="signature-box"><div class="signature-for">For, ${escapeHTML(companyName.toUpperCase())}</div>${signature}<div class="signature-label">Authorised Signatory &amp; Stamp</div></div></section>
+          <table class="tax-summary"><thead><tr><th>HSN/SAC Code</th><th>Taxable (₹)</th><th>CGST %</th><th>CGST (₹)</th><th>SGST %</th><th>SGST (₹)</th></tr></thead><tbody>${taxRows(items)}</tbody></table>`;
+      }
+      function syncShippingFromBilling() {
+        if (!$("sameAsBilling").checked) return;
+        ["Name", "Mobile", "Address", "GST"].forEach(part => { $("shipping" + part).value = $("billing" + part).value; });
+      }
+      function applyVendor(vendorKey) {
+        const profile = vendorProfiles[vendorKey] || vendorProfiles.siddhi;
+        Object.entries(profile).forEach(([id, value]) => { $(id).value = value; });
+        $("vendorSelect").value = vendorProfiles[vendorKey] ? vendorKey : "siddhi";
+      }
+      function clearValidation() {
+        document.querySelectorAll(".invalid").forEach(element => element.classList.remove("invalid"));
+        $("statusMessage").classList.remove("show");
+      }
+      function downloadInvoice() {
+        clearValidation();
+        const incomplete = [];
+        ["invoiceNo", "invoiceDate", "targetGrand", "billingName", "shippingName"].forEach(id => { if (!read(id)) incomplete.push(id); });
+        const validItem = itemData().some(item => item.description && item.quantity > 0n && item.rate >= 0n);
+        if (!validItem) incomplete.push("items");
+        if (incomplete.length) {
+          incomplete.filter(id => id !== "items").forEach(id => $(id).classList.add("invalid"));
+          const message = incomplete.includes("items") ? "Add at least one item description with a quantity before downloading." : "";
+          $("statusMessage").textContent = `Please complete the highlighted required fields. ${message}`.trim();
+          $("statusMessage").classList.add("show");
+          $("statusMessage").scrollIntoView({ behavior: "smooth", block: "center" });
+          return;
+        }
+        renderInvoice();
+        window.print();
+      }
+      function imageFromFile(input, assign) {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        if (!file.type.startsWith("image/")) { alert("Please choose an image file (PNG, JPG, or WEBP)."); input.value = ""; return; }
+        const reader = new FileReader();
+        reader.onload = () => { assign(String(reader.result)); renderInvoice(); };
+        reader.readAsDataURL(file);
+      }
+      form.addEventListener("input", event => {
+        if (event.target.closest("#itemsBody") || event.target.matches("input, textarea, select")) {
+          if (event.target.id && event.target.id.startsWith("billing")) syncShippingFromBilling();
+          clearValidation(); renderInvoice();
+        }
+      });
+      form.addEventListener("change", event => {
+        if (event.target.id === "sameAsBilling") syncShippingFromBilling();
+        if (event.target.id === "vendorSelect") applyVendor(event.target.value);
+        clearValidation();
+        renderInvoice();
+      });
+      itemsBody.addEventListener("click", event => {
+        const remove = event.target.closest(".remove-item");
+        if (!remove) return;
+        const row = event.target.closest("tr");
+        if (row.dataset.preset) return;
+        row.remove();
+        renderInvoice();
+      });
+      $("addItem").addEventListener("click", () => { newItemRow(); renderInvoice(); itemsBody.lastElementChild.querySelector(".item-description").focus(); });
+      $("logoUpload").addEventListener("change", event => imageFromFile(event.target, value => { logoDataUrl = value; }));
+      $("signatureUpload").addEventListener("change", event => imageFromFile(event.target, value => { signatureDataUrl = value; }));
+      $("previewButton").addEventListener("click", () => { renderInvoice(); document.querySelector(".preview-wrap").scrollIntoView({ behavior: "smooth", block: "start" }); });
+      $("printButton").addEventListener("click", downloadInvoice);
+      $("downloadButton").addEventListener("click", downloadInvoice);
+      $("resetButton").addEventListener("click", () => {
+        if (!confirm("Clear customer, item, and uploaded-image details? Company defaults will stay in place.")) return;
+        form.reset();
+        applyVendor("siddhi");
+        $("invoiceDate").value = todayISO();
+        $("paymentStatus").value = "Unpaid";
+        logoDataUrl = ""; signatureDataUrl = ""; itemsBody.innerHTML = ""; createItemRow("solar"); createItemRow("installation"); clearValidation(); renderInvoice();
+      });
+      applyVendor("siddhi");
+      createItemRow("solar");
+      createItemRow("installation");
+      renderInvoice();
+    })();
+  </script>
+</body>
+</html>
+
